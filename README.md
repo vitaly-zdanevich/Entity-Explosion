@@ -1,5 +1,5 @@
 # Entity Explosion
-A Chrome browser extension
+A browser extension
 
 Available free for Chrome: https://chrome.google.com/webstore/detail/entity-explosion/bbcffeclligkmfiocanodamdjclgejcn
 and for Firefox: https://addons.mozilla.org/en-US/firefox/addon/entity-explosion/
