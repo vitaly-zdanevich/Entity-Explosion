@@ -86,7 +86,6 @@ section { padding: 8px 12px; overflow-wrap: anywhere; }
 }
 
 @keyframes spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
 @media (prefers-color-scheme: dark) {
 	:root {
