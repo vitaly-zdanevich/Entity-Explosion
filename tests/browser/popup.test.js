@@ -103,7 +103,10 @@ test('popup renders data, preserves links and gives the image its full width', a
 	const {context, page, errors} = await openPopup();
 	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1'));
 	assert.equal(await page.textContent('h1'), 'Douglas Adams');
-	assert.equal(await page.textContent('#boxLabel0'), 'Languages');
+	assert.equal(await page.locator('header label').count(), 0);
+	assert.equal(await page.getByRole('combobox', {name: 'Languages', exact: true}).count(), 1);
+	assert.equal(await page.getByRole('combobox', {name: 'Entity', exact: true}).count(), 1);
+	assert.deepEqual(await page.locator('#box0 option').evaluateAll(options => options.map(option => [option.textContent, option.value])), [['en', 'en'], ['ar', 'ar']]);
 	assert.match(await page.textContent('#div1'), /Writer/);
 	assert.equal(await page.getAttribute('#div3 a', 'href'), 'https://example.test/42');
 	await page.waitForFunction(() => document.querySelector('.entity-image')?.naturalWidth > 0);
@@ -210,7 +213,7 @@ test('cached details render without any Wikidata requests', async () => {
 	const {context, page, requests} = await openPopup({local});
 	await page.waitForSelector('h1');
 	assert.equal(await page.textContent('h1'), 'Douglas Adams');
-	assert.equal(await page.textContent('#boxLabel0'), 'Languages');
+	assert.equal(await page.getByRole('combobox', {name: 'Languages', exact: true}).count(), 1);
 	assert.equal(requests.length, 0);
 	await context.close();
 });
@@ -221,10 +224,10 @@ test('Archive.org displays its initial match immediately and keeps alternatives 
 	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1')?.textContent === 'Internet Archive', undefined, {timeout: 3000});
 	assert.equal(await page.inputValue('#box1'), 'Q461');
 	assert.equal(await page.locator('#box1 option').count(), 4);
-	assert.equal(await page.getAttribute('#div_wdlink a', 'href'), 'http://www.wikidata.org/entity/Q461');
+	assert.equal(await page.getAttribute('.entity-heading a', 'href'), 'http://www.wikidata.org/entity/Q461');
 	await page.selectOption('#box1', 'Q15745318');
 	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1')?.textContent === 'American Journalism', undefined, {timeout: 3000});
-	assert.equal(await page.getAttribute('#div_wdlink a', 'href'), 'http://www.wikidata.org/entity/Q15745318');
+	assert.equal(await page.getAttribute('.entity-heading a', 'href'), 'http://www.wikidata.org/entity/Q15745318');
 	assert.deepEqual(errors, []);
 });
 
@@ -252,6 +255,34 @@ test('remote labels remain text, never markup', async () => {
 	await context.close();
 });
 
+test('the clickable entity ID stays to the right of a wrapping heading', async t => {
+	const title = 'A long entity title that wraps across several lines in a narrow popup';
+	const local = {'result:entity:en:Q42': {savedAt: Date.now(), data: entityData(title)}};
+	const {context, page} = await openPopup({viewport: {width: 320, height: 600}, local});
+	t.after(() => context.close());
+	await page.waitForSelector('h1');
+	assert.equal(await page.locator('.entity-heading a').count(), 1);
+	assert.equal(await page.textContent('.entity-heading a'), 'Q42');
+	assert.equal(await page.getAttribute('.entity-heading a', 'href'), 'http://www.wikidata.org/entity/Q42');
+	assert.equal(await page.locator('#div_wdlink').isVisible(), false);
+	const heading = await page.locator('h1').boundingBox();
+	const id = await page.locator('.entity-heading a').boundingBox();
+	assert.ok(id.x >= heading.x + heading.width, 'The ID must stay beside the title without overlap');
+	assert.ok(id.x + id.width <= 320, 'The ID must fit inside a narrow popup');
+	assert.ok(id.y < heading.y + heading.height, 'The ID must remain in the title row');
+});
+
+test('the entity ID remains accessible when its localized title is unavailable', async t => {
+	const data = {...entityData(), title: []};
+	const local = {'result:entity:en:Q42': {savedAt: Date.now(), data}};
+	const {context, page} = await openPopup({local});
+	t.after(() => context.close());
+	await page.waitForSelector('#div3 a');
+	assert.equal(await page.locator('.entity-heading a').count(), 1);
+	assert.equal(await page.getAttribute('.entity-heading a', 'href'), 'http://www.wikidata.org/entity/Q42');
+	assert.equal(await page.locator('h1').count(), 0);
+});
+
 test('language changes cancel old responses and update text direction', async () => {
 	const {context, page, errors} = await openPopup({delayEnglish: 250});
 	await page.waitForSelector('#box0 option[value=ar]', {state: 'attached'});
@@ -260,7 +291,8 @@ test('language changes cancel old responses and update text direction', async ()
 	await page.waitForTimeout(300);
 	assert.equal(await page.textContent('h1'), 'نتيجة جديدة');
 	assert.equal(await page.getAttribute('#results', 'dir'), 'rtl');
-	assert.equal(await page.textContent('#boxLabel0'), 'Languages');
+	assert.equal(await page.getByRole('combobox', {name: 'Languages', exact: true}).count(), 1);
+	assert.equal(await page.getByRole('combobox', {name: 'كيان', exact: true}).count(), 1);
 	assert.deepEqual(errors, []);
 	await context.close();
 });

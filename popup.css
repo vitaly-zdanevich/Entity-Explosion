@@ -36,13 +36,6 @@ header {
 	background: var(--panel);
 }
 
-label {
-	display: block;
-	margin-bottom: 5px;
-	font-weight: 600;
-	text-align: center;
-}
-
 select, button {
 	color: inherit;
 	background: var(--background);
@@ -63,12 +56,17 @@ select {
 button { padding: 3px 8px; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
 a { color: var(--link); text-decoration: underline; overflow-wrap: anywhere; }
-h1 { margin: 0 12px 6px; font-size: 26px; font-weight: 500; }
+h1 { margin: 0; font-size: 26px; font-weight: 500; }
 p { margin: 0 0 10px; }
 section { padding: 8px 12px; overflow-wrap: anywhere; }
 #div_title { padding: 12px 0 0; }
 #div_title p { margin: 0 12px 12px; }
 #div_wdlink, #div_wiki, #div3 { background: var(--panel); }
+
+/* Keep the linked ID on the right while long and right-to-left titles wrap. */
+.entity-heading { display: flex; align-items: baseline; gap: 12px; margin: 0 12px 6px; direction: ltr; }
+.entity-heading h1 { flex: 1; min-width: 0; }
+.entity-heading a { flex-shrink: 0; margin-left: auto; }
 
 /* Entity images fill the popup, with their original aspect ratio. */
 .entity-image { display: block; width: 100%; height: auto; }

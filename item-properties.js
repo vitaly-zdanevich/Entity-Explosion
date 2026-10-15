@@ -61,10 +61,10 @@ function setMatch(found) {
 	}
 }
 
-/** Localize the entity label and content direction; keep the language heading fixed. */
+/** Localize the entity selector's accessible name and update content direction. */
 function redrawLabels() {
 	const translation = translations.find(item => item.lang === language);
-	element('boxLabel1').textContent = translation?.entity ?? message('entityLabel');
+	entitySelect.setAttribute('aria-label', translation?.entity ?? message('entityLabel'));
 	const direction = RTL_LANGUAGES.has(language) ? 'rtl' : 'ltr';
 	element('results').dir = direction;
 	languageSelect.dir = direction;
@@ -74,12 +74,8 @@ function redrawLabels() {
 /** Populate languages in one DOM update, retaining the saved language before metadata is ready. */
 function populateLanguages() {
 	const uiLanguage = extension.i18n.getUILanguage().toLowerCase();
-	const byCode = new Map(translations.map(item => [item.lang, item.tongue]));
-	for (const code of [language, uiLanguage, 'en']) {
-		if (!byCode.has(code)) byCode.set(code, code);
-	}
-	const codes = [...new Set([language, uiLanguage, 'en', ...byCode.keys()])];
-	languageSelect.replaceChildren(...codes.map(code => new Option('[' + code + '] ' + byCode.get(code), code)));
+	const codes = [...new Set([language, uiLanguage, 'en', ...translations.map(item => item.lang)])];
+	languageSelect.replaceChildren(...codes.map(code => new Option(code, code)));
 	languageSelect.value = language;
 	redrawLabels();
 }
@@ -101,12 +97,18 @@ function propertyRow(property, value, url) {
 	return row;
 }
 
-/** Render a title and a full-width image without downloading images before text is ready. */
-function renderTitle(bindings) {
+/** Keep the entity link beside its title, including when the localized title is unavailable. */
+function renderTitle(bindings, id) {
 	const fragment = document.createDocumentFragment();
-	const item = bindings[0];
-	if (!item) return fragment;
-	if (item.itemLabel) fragment.append(node('h1', item.itemLabel.value));
+	const item = bindings[0] ?? {};
+	const heading = node('div', undefined, 'entity-heading');
+	if (item.itemLabel) {
+		const title = node('h1', item.itemLabel.value);
+		title.dir = 'auto';
+		heading.append(title);
+	}
+	heading.append(link(id, entityIri(id)));
+	fragment.append(heading);
 	if (item.itemDesc) fragment.append(node('p', item.itemDesc.value));
 	if (safeUrl(item.image?.value)) {
 		try {
@@ -145,10 +147,10 @@ function articleName(url) {
 }
 
 /** Publish a complete section with a single DOM replacement. */
-function renderSection(section, bindings) {
+function renderSection(section, bindings, id) {
 	const target = element(sectionIds[section]);
 	const fragment = document.createDocumentFragment();
-	if (section === 'title') fragment.append(renderTitle(bindings));
+	if (section === 'title') fragment.append(renderTitle(bindings, id));
 	else if (section === 'links') {
 		for (const item of selectLinks(bindings, language)) {
 			const suffix = item.language && item.language !== language ? ' [' + item.language + ']' : '';
@@ -210,16 +212,14 @@ async function showEntity(id, request, force = false) {
 	const cacheKey = 'entity:' + locale + ':' + id;
 	const cached = force ? undefined : await readCache(cacheKey);
 	if (request !== activeRequest) return;
-	const target = element('div_wdlink');
-	target.replaceChildren(propertyRow(translations.find(item => item.lang === locale)?.data ?? 'Wikidata', id, entityIri(id)));
-	target.hidden = false;
+	renderSection('title', [], id);
 	if (cached) {
-		for (const [section, bindings] of Object.entries(cached)) renderSection(section, bindings);
+		for (const [section, bindings] of Object.entries(cached)) renderSection(section, bindings, id);
 		setLoading(false);
 		return;
 	}
 	const {data, errors} = await fetchEntity(id, locale, request.signal, (section, bindings) => {
-		if (request === activeRequest) renderSection(section, bindings);
+		if (request === activeRequest) renderSection(section, bindings, id);
 	});
 	if (request !== activeRequest) return;
 	setLoading(false);

@@ -12,10 +12,8 @@
 	<div class='popup'>
 		<!-- Controls are available before JavaScript or remote data finishes loading. -->
 		<header>
-			<label for='box0' id='boxLabel0' lang='en'>Languages</label>
-			<select id='box0' name='language'><option value='en'>English</option></select>
-			<label for='box1' id='boxLabel1'>Entity</label>
-			<select id='box1' name='entity' disabled><option value=''>(select)</option></select>
+			<select id='box0' name='language' aria-label='Languages'><option value='en'>en</option></select>
+			<select id='box1' name='entity' aria-label='Entity' disabled><option value=''>(select)</option></select>
 			<div class='status-row'>
 				<span id='searchSpinner' class='spinner' aria-hidden='true' hidden></span>
 				<span id='status' role='status' aria-live='polite'></span>
