@@ -6,6 +6,11 @@ import {chromium, firefox} from 'playwright';
 
 const root = new URL('../../', import.meta.url);
 const messages = JSON.parse(await readFile(new URL('_locales/en/messages.json', root), 'utf8'));
+const archiveMatches = [
+	{id: 'Q461', label: 'Internet Archive'},
+	{id: 'Q15745318', label: 'American Journalism'},
+	{id: 'Q140694416', label: 'Archive.org'},
+];
 let browser;
 
 before(async () => {
@@ -78,13 +83,15 @@ async function openPopup(options = {}) {
 		if (options.fail) return route.fulfill({status: 503, body: 'Unavailable'});
 		const arabic = query.includes('"ar"') || query.includes('"ar,');
 		if (options.delayEnglish && !arabic) await new Promise(resolve => setTimeout(resolve, options.delayEnglish));
-		const data = entityData(options.hostile ? '<img src=x onerror=alert(1)>' : arabic ? 'نتيجة جديدة' : 'Douglas Adams');
+		const matchedEntity = options.matches?.find(item => query.includes('/entity/' + item.id + '>'));
+		const data = entityData(options.hostile ? '<img src=x onerror=alert(1)>' : arabic ? 'نتيجة جديدة' : matchedEntity?.label ?? 'Douglas Adams');
 		let bindings = [];
 		if (query.includes('SELECT DISTINCT ?itemLabel')) bindings = data.title;
 		else if (query.includes('SELECT DISTINCT ?article')) bindings = data.articles;
 		else if (query.includes('SELECT DISTINCT ?property ?value ')) bindings = options.properties ?? data.properties;
 		else if (query.includes('SELECT DISTINCT ?property ?valueUri')) bindings = data.values;
 		else if (query.includes('SELECT DISTINCT ?genProp')) bindings = data.links;
+		else if (options.matches && query.includes('wikibase:qualifier')) bindings = options.matches.map(({id, label}) => ({iri: {value: 'http://www.wikidata.org/entity/' + id}, iriLabel: {value: label}}));
 		else if (options.multiple) bindings = ['Q42', 'Q84'].map(id => ({iri: {value: 'http://www.wikidata.org/entity/' + id}, iriLabel: {value: id}}));
 		try { await route.fulfill({json: {results: {bindings}}}); } catch { /* A superseded request can be aborted. */ }
 	});
@@ -178,6 +185,34 @@ test('cached details render without any Wikidata requests', async () => {
 	await context.close();
 });
 
+test('Archive.org displays its initial match immediately and keeps alternatives selectable', async t => {
+	const {context, page, errors} = await openPopup({url: 'https://archive.org/', matches: archiveMatches});
+	t.after(() => context.close());
+	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1')?.textContent === 'Internet Archive', undefined, {timeout: 3000});
+	assert.equal(await page.inputValue('#box1'), 'Q461');
+	assert.equal(await page.locator('#box1 option').count(), 4);
+	assert.equal(await page.getAttribute('#div_wdlink a', 'href'), 'http://www.wikidata.org/entity/Q461');
+	await page.selectOption('#box1', 'Q15745318');
+	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1')?.textContent === 'American Journalism', undefined, {timeout: 3000});
+	assert.equal(await page.getAttribute('#div_wdlink a', 'href'), 'http://www.wikidata.org/entity/Q15745318');
+	assert.deepEqual(errors, []);
+});
+
+test('cached Archive.org matches display the initial entity without Wikidata requests', async t => {
+	const savedAt = Date.now();
+	const local = {
+		'result:page:en:https://archive.org/': {savedAt, data: archiveMatches},
+		'result:entity:en:Q461': {savedAt, data: entityData('Internet Archive')},
+	};
+	const {context, page, requests, errors} = await openPopup({url: 'https://archive.org/', local});
+	t.after(() => context.close());
+	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1')?.textContent === 'Internet Archive', undefined, {timeout: 3000});
+	assert.equal(await page.inputValue('#box1'), 'Q461');
+	assert.equal(await page.locator('#box1 option').count(), 4);
+	assert.equal(requests.length, 0);
+	assert.deepEqual(errors, []);
+});
+
 test('remote labels remain text, never markup', async () => {
 	const {context, page, errors} = await openPopup({hostile: true});
 	await page.waitForSelector('h1');
@@ -218,7 +253,7 @@ test('failed requests stop the spinner and leave refresh available', async () =>
 
 test('partial page matches remain usable but are not cached as complete results', async () => {
 	const {context, page} = await openPopup({url: 'https://example.test/items', multiple: true, failLookup: true});
-	await page.waitForFunction(() => document.querySelector('#box1').options.length === 3);
+	await page.waitForFunction(() => document.querySelector('#box1').options.length === 3 && document.querySelector('#results').getAttribute('aria-busy') === 'false');
 	assert.equal(await page.locator('#box1').isEnabled(), true);
 	assert.match(await page.textContent('#status'), /Some matching results/);
 	assert.equal(await page.evaluate(() => Object.keys(window.__store.local).some(key => key.startsWith('result:page:'))), false);
@@ -227,7 +262,7 @@ test('partial page matches remain usable but are not cached as complete results'
 
 test('empty entity selection does not send malformed SPARQL queries', async () => {
 	const {context, page, requests, errors} = await openPopup({url: 'https://example.test/items', multiple: true});
-	await page.waitForFunction(() => document.querySelector('#box1').options.length === 3);
+	await page.waitForFunction(() => document.querySelector('#box1').options.length === 3 && document.querySelector('#results').getAttribute('aria-busy') === 'false');
 	const count = requests.length;
 	await page.selectOption('#box1', '');
 	assert.equal(requests.length, count);

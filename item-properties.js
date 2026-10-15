@@ -260,10 +260,9 @@ async function search(force = false) {
 		entitySelect.append(...entities.map(item => new Option(item.label === item.id ? item.id : item.label + ' (' + item.id + ')', item.id)));
 		entitySelect.disabled = false;
 		setMatch(true);
-		if (entities.length === 1) {
-			entitySelect.value = entities[0].id;
-			await showEntity(entities[0].id, request, force);
-		} else setLoading(false);
+		// Display the first match immediately; the selector keeps alternatives available.
+		entitySelect.value = entities[0].id;
+		await showEntity(entities[0].id, request, force);
 		if (partial && request === activeRequest) element('status').textContent = message('partialResults');
 	} catch (error) {
 		if (request !== activeRequest) return;

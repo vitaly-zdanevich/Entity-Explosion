@@ -133,7 +133,7 @@ export function searchQuery(url, language) {
 	return identifierLookup(source, language);
 }
 
-/** Match direct URL statements and URL-valued qualifiers against bounded URL aliases. */
+/** Match URL aliases, ranking direct official websites and preferred statements first. */
 export function websiteQuery(url, language) {
 	return `SELECT DISTINCT ?iri ?iriLabel WHERE {
 		hint:Query hint:optimizer "None".
@@ -150,8 +150,9 @@ export function websiteQuery(url, language) {
 		FILTER(?rank != wikibase:DeprecatedRank)
 		?iri ?claim ?statement.
 		?property wikibase:claim ?claim.
+		BIND(BOUND(?valueProperty) && ?urlProperty = wd:P856 AS ?officialWebsite)
 		SERVICE wikibase:label { bd:serviceParam wikibase:language ${sparqlLiteral(language)}. }
-	} ORDER BY ?iriLabel LIMIT 100`;
+	} ORDER BY DESC(?officialWebsite) DESC(?rank = wikibase:PreferredRank) ?iriLabel LIMIT 100`;
 }
 
 /** Build the title query. */
