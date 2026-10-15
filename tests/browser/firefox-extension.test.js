@@ -68,9 +68,19 @@ function debuggerClient(path) {
 	};
 }
 
-test('Firefox installs manifest.json unchanged and initializes its popup and module background', {
-	skip: process.env.TEST_BROWSER !== 'firefox' || process.platform === 'win32',
-}, async () => {
+/** Poll browser state without assuming a fixed startup or popup animation time. */
+async function evaluateUntil(client, actor, expression, ready) {
+	let result;
+	for (let attempt = 0; attempt < 100; attempt++) {
+		result = await client.evaluate(actor, expression);
+		if (ready(result)) return result;
+		await delay(50);
+	}
+	assert.fail('Firefox did not reach the expected state: ' + JSON.stringify(result));
+}
+
+/** Install the unchanged extension and exercise its real toolbar panel. */
+async function checkFirefoxPopup(screenHeight) {
 	const root = fileURLToPath(new URL('../../', import.meta.url));
 	const temp = await mkdtemp(join(tmpdir(), 'entity-explosion-firefox-'));
 	const profile = join(temp, 'profile');
@@ -98,7 +108,10 @@ test('Firefox installs manifest.json unchanged and initializes its popup and mod
 		child = spawn(process.env.BROWSER_EXECUTABLE || firefox.executablePath(), [
 			'--no-remote', '--headless', '--profile', profile,
 			'--start-debugger-server', socketPath, 'about:blank',
-		], {stdio: 'ignore'});
+		], {
+			stdio: 'ignore',
+			env: {...process.env, MOZ_HEADLESS_WIDTH: '1280', MOZ_HEADLESS_HEIGHT: String(screenHeight)},
+		});
 		let launchError;
 		child.on('error', error => { launchError = error; });
 		for (let attempt = 0; attempt < 100; attempt++) {
@@ -117,6 +130,7 @@ test('Firefox installs manifest.json unchanged and initializes its popup and mod
 		const tab = (await client.send('root', 'listTabs')).tabs[0];
 		await client.send(tab.actor, 'navigateTo', {url: addon.manifestURL.replace('manifest.json', 'popup.html'), waitForLoad: true});
 		const {frame} = await client.send(tab.actor, 'getTarget');
+		await evaluateUntil(client, frame.consoleActor, 'document.querySelector(\'#status\')?.textContent', value => typeof value === 'string' && value.length > 0);
 		await client.evaluate(frame.consoleActor, `(async () => {
 			const background = await browser.runtime.getBackgroundPage();
 			const commands = await browser.commands.getAll();
@@ -131,17 +145,60 @@ test('Firefox installs manifest.json unchanged and initializes its popup and mod
 				savedLanguage: (await browser.storage.sync.get('IsoLanguage')).IsoLanguage,
 			};
 		})()`);
-		let result;
-		for (let attempt = 0; attempt < 100; attempt++) {
-			result = await client.evaluate(frame.consoleActor, 'JSON.stringify(window.__smoke)');
-			if (typeof result === 'string') break;
-			await delay(50);
-		}
+		const result = await evaluateUntil(client, frame.consoleActor, 'JSON.stringify(window.__smoke)', value => typeof value === 'string');
 		assert.deepEqual(JSON.parse(result), {
 			status: 'Open a website to look up its entity.', width: 800, height: 600,
 			language: 'en', backgroundModule: 'module', shortcut: 'Alt+Shift+E', storageKeys: true,
 			savedLanguage: 'en',
 		});
+
+		// Inspect the browser-owned panel as well as its extension document: Firefox
+		// can clip the panel without updating the document's innerHeight.
+		const {processDescriptor} = await client.send('root', 'getProcess', {id: 0});
+		const {process: parentTarget} = await client.send(processDescriptor.actor, 'getTarget');
+		await client.evaluate(parentTarget.consoleActor, `Services.wm.getMostRecentWindow('navigator:browser').resizeTo(1280, ${Math.min(900, screenHeight)})`);
+		await client.evaluate(frame.consoleActor, `browser.action.openPopup().then(() => window.__popupOpened = true, error => window.__popupOpened = String(error))`);
+		await evaluateUntil(client, frame.consoleActor, 'window.__popupOpened', value => value === true);
+		const panel = JSON.parse(await evaluateUntil(client, parentTarget.consoleActor, `JSON.stringify((() => {
+			const win = Services.wm.getMostRecentWindow('navigator:browser');
+			const panel = win.document.querySelector('#customizationui-widget-panel');
+			const view = panel?.querySelector('panelview');
+			if (panel?.state !== 'open' || !view) return null;
+			const bounds = view.getBoundingClientRect();
+			return {width: bounds.width, height: bounds.height, top: win.mozInnerScreenY + bounds.top};
+		})())`, value => typeof value === 'string' && JSON.parse(value)?.height > 100));
+		await evaluateUntil(client, frame.consoleActor, `browser.extension.getViews({type: 'popup'}).some(win => win.mozInnerScreenY === ${panel.top})`, value => value === true);
+		await client.evaluate(frame.consoleActor, `(() => {
+			const win = browser.extension.getViews({type: 'popup'})[0];
+			const fixture = win.document.createElement('div');
+			fixture.style.height = '1200px';
+			const marker = win.document.createElement('p');
+			marker.textContent = 'Final result';
+			win.document.querySelector('main').append(fixture, marker);
+			win.requestAnimationFrame(() => {
+				const popup = win.document.querySelector('.popup');
+				popup.scrollTop = popup.scrollHeight;
+				win.requestAnimationFrame(() => {
+					const bounds = popup.getBoundingClientRect();
+					window.__popupLayout = {
+						width: bounds.width, height: bounds.height,
+						bodyWidth: win.document.body.clientWidth, bodyHeight: win.document.body.clientHeight,
+						markerTop: marker.getBoundingClientRect().top, markerBottom: marker.getBoundingClientRect().bottom,
+						scrollTop: popup.scrollTop,
+					};
+				});
+			});
+		})()`);
+		const layout = JSON.parse(await evaluateUntil(client, frame.consoleActor, 'JSON.stringify(window.__popupLayout)', value => typeof value === 'string'));
+		assert.equal(layout.bodyWidth, 800);
+		assert.equal(layout.bodyHeight, 600);
+		assert.equal(layout.width, 800);
+		assert.ok(layout.height <= panel.height, `Popup layout ${layout.height}px exceeds its visible Firefox panel ${panel.height}px`);
+		assert.ok(layout.height >= panel.height - 2, 'Popup uses the available panel height');
+		if (screenHeight === 1000) assert.equal(layout.height, 600);
+		else assert.ok(layout.height < 600, 'A short screen constrains the visible popup');
+		assert.ok(layout.scrollTop > 0, 'Long results scroll');
+		assert.ok(layout.markerTop >= 0 && layout.markerBottom <= layout.height, 'The final result remains visible after scrolling');
 	} finally {
 		client?.socket.destroy();
 		if (child?.pid && child.exitCode === null && child.signalCode === null) {
@@ -151,4 +208,10 @@ test('Firefox installs manifest.json unchanged and initializes its popup and mod
 		}
 		await rm(temp, {recursive: true, force: true});
 	}
-});
+}
+
+for (const screenHeight of [1000, 600]) {
+	test(`Firefox installs manifest.json unchanged and fits its toolbar popup to a 1280×${screenHeight} screen`, {
+		skip: process.env.TEST_BROWSER !== 'firefox' || process.platform === 'win32',
+	}, () => checkFirefoxPopup(screenHeight));
+}

@@ -139,22 +139,52 @@ test('the shell paints while network requests are pending, including with CPU th
 	await context.close();
 });
 
-test('results scroll without moving the controls', async () => {
-	const {context, page} = await openPopup();
+test('dropdowns and Refresh scroll with the results', async t => {
+	const properties = Array.from({length: 30}, (_, index) => ({property: {value: 'Property ' + index}, value: {value: 'Example value'}}));
+	const {context, page} = await openPopup({properties});
+	t.after(() => context.close());
 	await page.waitForSelector('.entity-image');
 	await page.waitForFunction(() => document.querySelector('.entity-image').naturalWidth > 0);
 	const before = await page.locator('header').boundingBox();
-	await page.evaluate(() => { document.querySelector('main').scrollTop = 300; });
-	assert.deepEqual(await page.locator('header').boundingBox(), before);
-	assert.ok(await page.evaluate(() => document.querySelector('main').scrollTop > 0));
-	await context.close();
+	await page.evaluate(() => { document.querySelector('.popup').scrollTop = document.querySelector('header').getBoundingClientRect().height + 20; });
+	const after = await page.locator('header').boundingBox();
+	assert.ok(after.y < before.y, 'Scrolling results must also move the header');
+	for (const selector of ['#box0', '#box1', '#refresh']) {
+		const control = await page.locator(selector).boundingBox();
+		assert.ok(control.y + control.height <= 0, selector + ' must scroll out of view');
+	}
 });
 
-test('a popup already constrained by the browser fits without waiting for another resize', async () => {
+test('a provisional popup viewport cannot trap the content at dropdown height', async t => {
+	const local = {'result:entity:en:Q42': {savedAt: Date.now(), data: entityData('Cached title')}};
+	const {context, page, requests} = await openPopup({viewport: {width: 320, height: 200}, local});
+	t.after(() => context.close());
+	await page.waitForFunction(() => document.querySelector('#results').getAttribute('aria-busy') === 'false' && document.querySelector('h1'));
+	// Browser toolbar panels measure the document's preferred size after an initial layout.
+	const preferred = await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve({
+		width: document.body.clientWidth, height: document.body.clientHeight,
+	})))));
+	await page.setViewportSize(preferred);
+	const layout = await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => {
+		const results = document.querySelector('main').getBoundingClientRect();
+		const title = document.querySelector('h1').getBoundingClientRect();
+		resolve({width: innerWidth, height: innerHeight, resultsHeight: results.height, titleVisible: title.top >= results.top && title.bottom <= innerHeight});
+	}))));
+	assert.ok(layout.resultsHeight > 100, 'The panel must recover space for results after its initial small viewport');
+	assert.deepEqual({width: layout.width, height: layout.height}, {width: 800, height: 600});
+	assert.equal(layout.titleVisible, true);
+	assert.equal(requests.length, 0);
+});
+
+test('a popup already constrained by the browser fits without waiting for another resize', async t => {
 	const {context, page} = await openPopup({viewport: {width: 700, height: 450}});
+	t.after(() => context.close());
 	await page.waitForSelector('h1');
-	assert.deepEqual(await page.evaluate(() => ({width: document.body.clientWidth, height: document.body.clientHeight})), {width: 700, height: 450});
-	await context.close();
+	const dimensions = await page.evaluate(() => {
+		const popup = document.querySelector('.popup').getBoundingClientRect();
+		return {width: popup.width, height: popup.height, bodyWidth: document.body.clientWidth, bodyHeight: document.body.clientHeight};
+	});
+	assert.deepEqual(dimensions, {width: 700, height: 450, bodyWidth: 800, bodyHeight: 600});
 });
 
 test('refresh bypasses cached entity data', async () => {

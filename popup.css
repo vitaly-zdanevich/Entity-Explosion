@@ -12,25 +12,29 @@
 [hidden] { display: none !important; }
 
 body {
-	/* Desktop toolbar popups allow at most 800 by 600 CSS pixels. */
+	/* Keep the preferred panel size independent of temporary startup viewports. */
 	width: 800px;
 	height: 600px;
 	margin: 0;
-	display: flex;
-	flex-direction: column;
 	overflow: hidden;
 	background: var(--background);
 	color: var(--foreground);
 	font: 15px/1.4 system-ui, sans-serif;
 }
 
+/* Fit the browser's available space and scroll controls together with results. */
+.popup {
+	position: fixed;
+	inset: 0;
+	width: min(800px, 100vw);
+	height: min(600px, 100vh);
+	overflow-y: auto;
+}
+
 header {
-	flex: 0 0 auto;
 	padding: 10px 18px;
 	background: var(--panel);
 }
-
-main { flex: 1; min-height: 0; overflow-y: auto; }
 
 label {
 	display: block;

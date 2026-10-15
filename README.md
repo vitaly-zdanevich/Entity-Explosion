@@ -69,8 +69,8 @@ alongside formatter URLs. Rules are indexed by domain and compiled on demand.
 
 Dark mode follows `prefers-color-scheme`, using `#000` backgrounds and `#bbb`
 text. Entity images use the full popup width while keeping their aspect ratio.
-The popup requests the browser's maximum 800 × 600 pixel size, with scrolling
-results and fixed controls. Smaller screens or Firefox's overflow menu can limit
+The popup requests the browser's maximum 800 × 600 pixel size, with controls and
+results scrolling together. Smaller screens or Firefox's overflow menu can limit
 the available space; see the [popup sizing documentation](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/user_interface/Popups).
 
 For local development, load this directory as an unpacked Chrome extension.

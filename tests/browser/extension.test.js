@@ -56,14 +56,25 @@ for (const screenHeight of [1000, 600]) {
 			const popup = targetInfos.find(target => target.url.endsWith('/popup.html'));
 			assert.ok(popup, 'The browser action must have an actual popup target');
 			const dimensions = await evaluatePopup(client, popup.targetId, `
-				new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve({
-					width: innerWidth, height: innerHeight,
-					bodyWidth: document.body.clientWidth, bodyHeight: document.body.clientHeight,
-					status: document.querySelector('#status').textContent,
-				}))))
+				(async () => {
+					// Storage and tab reads can finish after the first two paints on CI.
+					const deadline = performance.now() + 3000;
+					while (!document.querySelector('#status')?.textContent && performance.now() < deadline) {
+						await new Promise(requestAnimationFrame);
+					}
+					await new Promise(requestAnimationFrame);
+					const panel = document.querySelector('.popup').getBoundingClientRect();
+					return {
+						width: innerWidth, height: innerHeight,
+						bodyWidth: document.body.clientWidth, bodyHeight: document.body.clientHeight,
+						panelWidth: panel.width, panelHeight: panel.height,
+						status: document.querySelector('#status').textContent,
+					};
+				})()
 			`);
 			assert.deepEqual(dimensions, {
-				width: 800, height: dimensions.height, bodyWidth: 800, bodyHeight: dimensions.height,
+				width: 800, height: dimensions.height, bodyWidth: 800, bodyHeight: 600,
+				panelWidth: 800, panelHeight: dimensions.height,
 				status: 'Open a website to look up its entity.',
 			});
 			if (screenHeight === 1000) assert.equal(dimensions.height, 600);

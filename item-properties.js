@@ -272,16 +272,23 @@ async function search(force = false) {
 	}
 }
 
+/** Firefox can clip a toolbar panel without shrinking its viewport; fit its scroll area to the screen. */
+function fitFirefoxPopup() {
+	if (typeof window.mozInnerScreenY !== 'number' || !extension.extension?.getViews({type: 'popup'}).includes(window)) return;
+	const popup = document.querySelector('.popup');
+	const fit = () => {
+		// Leave room for the native panel border without changing the body's preferred size.
+		const available = screen.availTop + screen.availHeight - window.mozInnerScreenY - 2;
+		popup.style.maxHeight = Math.max(1, Math.min(600, available)) + 'px';
+	};
+	window.addEventListener('resize', fit);
+	window.addEventListener('focus', fit);
+	requestAnimationFrame(fit);
+}
+
 /** Read only the cached language list; network refreshes belong to the background worker. */
 async function initialize() {
-	// Ignore Chrome's provisional 25px viewport while it measures the preferred popup size.
-	const fitPopup = () => {
-		if (innerWidth <= 25 || innerHeight <= 25) return;
-		document.body.style.width = Math.min(800, innerWidth) + 'px';
-		document.body.style.height = Math.min(600, innerHeight) + 'px';
-	};
-	window.addEventListener('resize', fitPopup);
-	requestAnimationFrame(fitPopup);
+	fitFirefoxPopup();
 	document.documentElement.lang = extension.i18n.getUILanguage();
 	element('refresh').textContent = message('refresh');
 	populateLanguages();
