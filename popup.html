@@ -1,78 +1,33 @@
 <!DOCTYPE html>
-<html lang="en" id="html">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Entity Explosion</title>
-
-  <link rel="stylesheet" href="./bootstrap.min.css"> <!-- this seems connected to the "RESOURCE FAILED TO LOAD" error, but is required for pretty dropdowns -->
-  <!--<link rel="stylesheet" href="./font-awesome.min.css">-->
-  <!-- Custom CSS -->
-  <style>
-  .custom-img {
-    float: right;
-    height: 50px;
-    margin-top: 0; /* Adjusts the top margin */
-    margin-right: 0; /* Adjusts the right margin */
-  }  
-  </style>
-	
-	
-	
-  <script src="jquery-3.6.0.min.js"></script> <!--should be loaded before bootstrap -->
-  <!--<script src="bootstrap.min.js"></script>-->
-
+	<meta charset='UTF-8'>
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<meta name='color-scheme' content='light dark'>
+	<title>Entity Explosion</title>
+	<link rel='stylesheet' href='popup.css'>
+	<script type='module' src='item-properties.js'></script>
 </head>
-<body style = "min-width: 400px; max-width: 500px;">
-
-  <div style="margin-bottom: 0px;">
-
-    <!-- here is where the lookup URL and WD item will be displayed -->
-    <div id="div0" style="word-wrap: break-word;"></div>
-    <div class="form-horizontal input-group-addon">
-        <div class="form-group">
-            <label for="box0" class="col-sm-4 control-label" id="boxLabel0">language/língua/Sprache/idioma/语言/言語</label>
-            <div class="col-sm-5">
-                <select name="languageDropdown" id="box0" class="form-control">
-                  <!-- this list is automatically loaded when background.js runs a query and gets all the languages back from WD -->
-				  <!--<option value='en' selected='selected'>English</option>-->
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="box1" class="col-sm-4 control-label" id="boxLabel1">entity</label>
-            <div class="col-sm-5">
-                <select name="statusDropdown" id="box1" class="form-control">
-                    <option value='' selected='selected' id="select">(Select)</option>
-                </select>
-            </div>
-        </div>
-        
-        <i id="searchSpinner" class="fa fa-spinner fa-spin fa-lg"></i>
-    </div>
-
-     <!--Here is where the info gets inserted-->
-    <div id="div_title" style="background-color:#FFFFFF;padding:0px"></div>
-    <div id="div_wdlink" style="background-color:#EEEEEE;padding:5px;padding-bottom:0px;"></div>
-    <div id="div_wiki" style="background-color:#EEEEEE;padding:5px;padding-top:0px;"></div>
-    <div id="div1" style="background-color:#FFFFFF;padding:5px;"></div>
-    <div id="div2" style="background-color:#FFFFFF;padding:5px;"></div>
-    <div id="div3" style="background-color:#EEEEEE;padding:5px;"></div>
-
-	<div class="container" style="width:100%;">
-	    <a target="_blank" href="https://commons.wikimedia.org/wiki/File:Wikidata-logo.svg"><img id="wdlogo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/320px-Wikidata-logo.svg.png" crossorigin="anonymous" referrerpolicy="no-referrer" style="float:right; height:45px; margin-top:0; margin-left:0; margin-right:0;"></a>
-		
-	    <div id="div_footer1" dir=ltr style="margin:0px; text-align:left; font-size:x-small">
-        <span id="footer1a">Live data provided by this extension is from</span> <a target="_blank" href="https://www.wikidata.org/" id="footer_Wikidata">Wikidata</a><sup id="TM">TM</sup> <span id="footer1b">and is licensed</span> <a target="_blank" href="https://creativecommons.org/publicdomain/zero/1.0/" id="CC0">CC0</a>
-        </div>
-	    <div id="div_footer2" dir=ltr style="margin:0px; text-align:left; font-size:x-small;">
-        <a target="_blank" href="https://www.wikidata.org/wiki/Wikidata:Entity_Explosion"><span id="ExtensionName">Entity Explosion</span></a> <span id="footer_version">version</span> <span id="ExtensionVersion">0.0</span> <span id="footer2a">by</span> <a target="_blank" href="https://www.wikidata.org/wiki/User:99of9" id="TobyHudson">Toby Hudson</a>;
-        </div>
-    </div>
-
-	<script src="popup.js" charset="utf-8"></script>
- 	<script src="item-properties.js"></script>
+<body>
+	<!-- Controls are available before JavaScript or remote data finishes loading. -->
+	<header>
+		<label for='box0' id='boxLabel0' lang='en'>Languages</label>
+		<select id='box0' name='language'><option value='en'>English</option></select>
+		<label for='box1' id='boxLabel1'>Entity</label>
+		<select id='box1' name='entity' disabled><option value=''>(select)</option></select>
+		<div class='status-row'>
+			<span id='searchSpinner' class='spinner' aria-hidden='true' hidden></span>
+			<span id='status' role='status' aria-live='polite'></span>
+			<button id='refresh' type='button'>Refresh</button>
+		</div>
+	</header>
+	<main id='results' aria-busy='false'>
+		<section id='div_title' hidden></section>
+		<section id='div_wdlink' hidden></section>
+		<section id='div_wiki' hidden></section>
+		<section id='div1' hidden></section>
+		<section id='div2' hidden></section>
+		<section id='div3' hidden></section>
+	</main>
 </body>
 </html>

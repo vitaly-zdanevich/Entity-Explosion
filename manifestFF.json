@@ -1,46 +1,63 @@
 {
-  "manifest_version": 3,
-  "name": "__MSG_extName__",
-  "version": "0.9.5",
-  "description": "__MSG_extDesc__",
-  "default_locale": "en",
-  "icons": {
-   "38": "images/EE-grey-38.png",
-   "48": "images/EE_tile_square-icon-filled-white-48.png",
-   "128": "images/EE-tile-square-icon-128.png"
-  },
-  "action": {
-	"default_popup": "popup.html",
-    "default_title": "__MSG_extName__"
-  },
-  "background": {
-     "service_worker": "background.js",
-	  "scripts":["background.js"]
-  },
-  "content_scripts": [  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "{b2dbb4cf-7425-4790-8bc4-b1ccbc818118}"
-    }
-  },
-  "content_security_policy": {
-	  "extension_pages": "script-src 'self'; object-src 'self'"
-  },
-  "permissions": [
-  	"tabs", 
-  	"storage"
-  ],
-  "host_permissions": [
-	"https://commons.wikimedia.org/w/api.php", 
-	"https://species.wikimedia.org/w/api.php", 
-	"https://*.wikipedia.org/w/api.php",
-	"https://*.wikibooks.org/w/api.php",
-	"https://*.wikifunctions.org/w/api.php",
-	"https://*.wikinews.org/w/api.php",
-	"https://*.wikiquote.org/w/api.php",
-	"https://*.wikisource.org/w/api.php",
-	"https://*.wikiversity.org/w/api.php",
-	"https://*.wikivoyage.org/w/api.php",
-	"https://*.wiktionary.org/w/api.php",
-	"https://wikidata.org/w/api.php"  ]
+	"manifest_version": 3,
+	"name": "__MSG_extName__",
+	"version": "0.10.0",
+	"description": "__MSG_extDesc__",
+	"default_locale": "en",
+	"icons": {
+		"16": "images/wikidata-color-16.png",
+		"32": "images/wikidata-color-32.png",
+		"48": "images/wikidata-color-48.png",
+		"128": "images/wikidata-color-128.png"
+	},
+	"action": {
+		"default_popup": "popup.html",
+		"default_title": "__MSG_extName__",
+		"default_icon": {
+			"16": "images/wikidata-gray-16.png",
+			"32": "images/wikidata-gray-32.png"
+		}
+	},
+	"background": {
+		"service_worker": "background.js",
+		"scripts": [
+			"background.js"
+		],
+		"type": "module"
+	},
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "{b2dbb4cf-7425-4790-8bc4-b1ccbc818118}"
+		}
+	},
+	"commands": {
+		"_execute_action": {
+			"suggested_key": {
+				"default": "Alt+Shift+E"
+			}
+		}
+	},
+	"content_security_policy": {
+		"extension_pages": "script-src 'self'; object-src 'self'"
+	},
+	"permissions": [
+		"tabs",
+		"storage"
+	],
+	"host_permissions": [
+		"https://query.wikidata.org/*",
+		"https://www.wikidata.org/*",
+		"https://wikidata.org/*",
+		"https://commons.wikimedia.org/*",
+		"https://species.wikimedia.org/*",
+		"https://*.wikipedia.org/*",
+		"https://*.wikibooks.org/*",
+		"https://*.wikifunctions.org/*",
+		"https://*.wikinews.org/*",
+		"https://*.wikiquote.org/*",
+		"https://*.wikisource.org/*",
+		"https://*.wikiversity.org/*",
+		"https://*.wikivoyage.org/*",
+		"https://*.wiktionary.org/*"
+	]
 }

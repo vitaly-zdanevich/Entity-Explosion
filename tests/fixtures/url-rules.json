@@ -1,0 +1,158 @@
+{
+	"source": "Wikidata property statements retrieved 2026-10-15; CC0",
+	"formatters": [
+		{
+			"prop": "P7597",
+			"formatter": "https://lutris.net/games/$1/",
+			"regex": "^[\\-]?[a-z\\d]+([\\-]{1,2}[a-z\\d]+)*[\\-]?$"
+		},
+		{
+			"prop": "P2003",
+			"formatter": "https://www.instagram.com/$1/",
+			"regex": "([0-9a-z_](?:(?:[0-9a-z_]|(?:\\.(?!\\.))){0,28}(?:[0-9a-z_]))?)"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://www.youtube.com/watch?v=$1",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://music.youtube.com/watch?v=$1",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://www.youtubekids.com/watch?v=$1",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://www.youtube.com/shorts/$1",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://i.ytimg.com/vi/$1/hqdefault.jpg",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://www.youtube.com/source/$1/shorts",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://www.youtube.com/live/$1",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1651",
+			"formatter": "https://img.youtube.com/vi/$1/maxresdefault.jpg",
+			"regex": "[-_0-9A-Za-z]{11}"
+		},
+		{
+			"prop": "P1933",
+			"formatter": "https://www.mobygames.com/game/$1"
+		},
+		{
+			"prop": "P11688",
+			"formatter": "https://www.mobygames.com/game/$1/",
+			"regex": "^[1-9]\\d*$"
+		},
+		{
+			"prop": "P12652",
+			"formatter": "https://www.myabandonware.com/game/--$1",
+			"regex": "^[a-z\\d]{1,3}$"
+		}
+	],
+	"matchpatterns": [
+		{
+			"prop": "P7597",
+			"matchpattern": "^https?://lutris\\.net\\/games\\/by\\/([\\-]?[a-z\\d]+(\\-{1,2}[a-z\\d]+)*[\\-]?)/?",
+			"domains": [
+				"lutris.net"
+			]
+		},
+		{
+			"prop": "P2003",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?instagram\\.com\\/(?!(?:explore|p|accounts)\\/)([^\\/?]+)",
+			"replacementvalue": "\\1",
+			"domains": [
+				"instagram.com"
+			]
+		},
+		{
+			"prop": "P2003",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?instagram\\.com\\/accounts\\/login\\/\\?next=(?:https?%3A%2F%2F(?:www\\.)?instagram\\.com)?%2F([^\\/?%&]+)",
+			"domains": [
+				"instagram.com",
+				"www.instagram.com"
+			]
+		},
+		{
+			"prop": "P1651",
+			"matchpattern": "^https?:\\/\\/(?:www\\.|m\\.|music\\.)?youtu(?:be\\.com\\/watch\\?v=|\\.be\\/|be\\/shorts\\/|be\\/live\\/)([-_0-9A-Za-z]{11})",
+			"domains": [
+				"youtube.com",
+				"youtu.be"
+			]
+		},
+		{
+			"prop": "P1651",
+			"matchpattern": "^https?:\\/\\/play\\.google\\.com\\/store\\/movies\\/details\\/[^\\/]+(?:&|\\?)id=([-_0-9A-Za-z]{11})",
+			"domains": [
+				"play.google.com"
+			]
+		},
+		{
+			"prop": "P1651",
+			"matchpattern": "^https?:\\/\\/song\\.link\\/y\\/([-_0-9A-Za-z]{11})",
+			"domains": [
+				"song.link"
+			]
+		},
+		{
+			"prop": "P1933",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?mobygames\\.com\\/game\\/(?:windows|dos|gameboy-color|macintoshxbox-one|ps2|ps1|ps2|ps3|playstation|playstation-4|xbox|xbox-one|xbox-series|switch|n64|android|iphone|ipad|wii|oculus-quest|gameboy)\\/([^#\\?\\/]+)",
+			"domains": [
+				"mobygames.com"
+			]
+		},
+		{
+			"prop": "P1933",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?mobygames\\.com\\/game\\/([^#\\?\\/]+)$",
+			"domains": [
+				"mobygames.com"
+			]
+		},
+		{
+			"prop": "P1933",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?mobygames\\.com\\/game\\/game\\/([^#\\?\\/]+)$",
+			"domains": [
+				"mobygames.com"
+			]
+		},
+		{
+			"prop": "P11688",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?mobygames\\.com\\/game\\/([1-9]\\d*)\\/",
+			"domains": [
+				"mobygames.com"
+			]
+		},
+		{
+			"prop": "P11688",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?mobygames\\.com\\/game\\/([1-9]\\d*)\\/[a-z\\d\\_\\-]+(?:\\-[a-z\\d\\_\\-]+)*\\/?",
+			"domains": [
+				"mobygames.com"
+			]
+		},
+		{
+			"prop": "P12652",
+			"matchpattern": "^https?:\\/\\/(?:www\\.)?myabandonware\\.com\\/game\\/.+-([a-z\\d]{1,3})",
+			"domains": [
+				"myabandonware.com"
+			]
+		}
+	]
+}
