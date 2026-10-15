@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+      - run: npx playwright install --with-deps chromium firefox
+      - name: Chromium browser tests
+        run: npm run test:browser
+      - name: Firefox browser tests
+        run: npm run test:browser
+        env:
+          TEST_BROWSER: firefox
